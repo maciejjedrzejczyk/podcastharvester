@@ -89,8 +89,8 @@ def convert_urls_to_config(input_file, output_file, default_cutoff="2025-08-01")
         print(f"{i+1}. {config['channel_name']} -> {config['url']}")
 
 def main():
-    input_file = "/Users/matanyahu/Downloads/podcasts/youtube_channel_urls.txt"
-    output_file = "/Users/matanyahu/Downloads/podcasts/channels_config_full.json"
+    input_file = "./youtube_channel_urls.txt"
+    output_file = "./channels_config.json"
     
     convert_urls_to_config(input_file, output_file)
 

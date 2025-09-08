@@ -66,10 +66,10 @@ def main():
         epilog="""
 Examples:
   List all channels:
-    python list_channels.py --config channels_config_full.json
+    python list_channels.py --config channels_config.json
 
   Search for specific channels:
-    python list_channels.py --config channels_config_full.json --search "cold"
+    python list_channels.py --config channels_config.json --search "cold"
 
   List test channels:
     python list_channels.py --config test_channels.json

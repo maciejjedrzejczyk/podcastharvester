@@ -17,7 +17,7 @@ def get_media_duration(file_path):
 
 def find_channels_with_long_content():
     """Find channels with media files longer than 30 minutes."""
-    downloads_dir = Path('/Users/matanyahu/Downloads/podcasts/downloads')
+    downloads_dir = Path('./downloads')
     long_channels = set()
     
     for channel_dir in downloads_dir.iterdir():
@@ -40,7 +40,7 @@ def find_channels_with_long_content():
 
 def update_config():
     """Update summarize setting for channels with long content."""
-    config_path = '/Users/matanyahu/Downloads/podcasts/channels_config_full.json'
+    config_path = './channels_config.json'
     
     with open(config_path, 'r') as f:
         channels = json.load(f)

@@ -1,0 +1,47 @@
+[
+  {
+    "url": "https://www.youtube.com/@mkbhd",
+    "channel_name": "MKBHD",
+    "content_type": "video",
+    "cutoff_date": "2025-08-01",
+    "output_format": "%(upload_date)s_%(channel_name)s_%(title)s",
+    "output_directory": "downloads/MKBHD",
+    "download_metadata": true,
+    "download_transcript": true,
+    "transcript_languages": [
+      "en"
+    ],
+    "redownload_deleted": false,
+    "summarize": "yes"
+  },
+  {
+    "url": "https://www.youtube.com/@Fireship",
+    "channel_name": "Fireship",
+    "content_type": "video",
+    "cutoff_date": "2025-08-01",
+    "output_format": "%(upload_date)s_%(channel_name)s_%(title)s",
+    "output_directory": "downloads/Fireship",
+    "download_metadata": true,
+    "download_transcript": true,
+    "transcript_languages": [
+      "en"
+    ],
+    "redownload_deleted": false,
+    "summarize": "yes"
+  },
+  {
+    "url": "https://www.youtube.com/@LowBudgetStories",
+    "channel_name": "LowBudgetStories",
+    "content_type": "audio",
+    "cutoff_date": "2025-08-01",
+    "output_format": "%(upload_date)s_%(channel_name)s_%(title)s",
+    "output_directory": "downloads/LowBudgetStories",
+    "download_metadata": true,
+    "download_transcript": true,
+    "transcript_languages": [
+      "en"
+    ],
+    "redownload_deleted": false,
+    "summarize": "no"
+  }
+]

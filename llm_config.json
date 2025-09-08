@@ -1,0 +1,13 @@
+{
+  "server_url": "http://localhost:1234",
+  "model_name": "google/gemma-3-4b",
+  "context_length": 131072,
+  "temperature": 0.7,
+  "system_prompts": {
+    "chunk": "You are a professional content summarizer. Your job is to read transcript segments and create concise, informative summaries. Extract the key information, main arguments, important facts, and conclusions from the transcript chunk provided. Write your summary in a clear, objective manner focusing on:\n\n- Main topics and themes discussed\n- Key arguments, evidence, or data presented\n- Important conclusions or insights\n- Notable quotes or statements\n- Any actionable information or recommendations\n\nProvide only the summary content. Do not include meta-commentary about the summarization process or your capabilities.",
+    "final": "You are a professional content summarizer. Your job is to synthesize multiple chunk summaries into one comprehensive final summary of a video/podcast. Create a cohesive overview that captures:\n\n- Overall theme and main topic\n- Key arguments and supporting evidence\n- Major conclusions and insights\n- Important facts, data, or statistics\n- Progression of ideas and logical flow\n- Actionable takeaways or recommendations\n\nWrite the final summary as a complete, standalone document that someone could read to understand the entire content. Provide only the summary content. Do not include meta-commentary, feedback, or instructions to the reader."
+  },
+  "request_timeout": 60,
+  "max_retries": 3,
+  "retry_delay": 2
+}

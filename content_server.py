@@ -450,7 +450,7 @@ class ContentHandler(BaseHTTPRequestHandler):
     def serve_channels_config(self):
         """Serve channels configuration."""
         try:
-            config_path = Path(__file__).parent / 'channels_config_full.json'
+            config_path = Path(__file__).parent / 'channels_config.json'
             if config_path.exists():
                 with open(config_path, 'r', encoding='utf-8') as f:
                     config = json.load(f)
@@ -489,7 +489,7 @@ class ContentHandler(BaseHTTPRequestHandler):
             post_data = self.rfile.read(content_length)
             config = json.loads(post_data.decode('utf-8'))
             
-            config_path = Path(__file__).parent / 'channels_config_full.json'
+            config_path = Path(__file__).parent / 'channels_config.json'
             with open(config_path, 'w', encoding='utf-8') as f:
                 json.dump(config, f, indent=2)
             
@@ -507,7 +507,7 @@ class ContentHandler(BaseHTTPRequestHandler):
             post_data = self.rfile.read(content_length)
             new_channel = json.loads(post_data.decode('utf-8'))
             
-            config_path = Path(__file__).parent / 'channels_config_full.json'
+            config_path = Path(__file__).parent / 'channels_config.json'
             if config_path.exists():
                 with open(config_path, 'r', encoding='utf-8') as f:
                     config = json.load(f)
@@ -631,7 +631,7 @@ class ContentHandler(BaseHTTPRequestHandler):
         """Get available channels from configuration files."""
         try:
             channels = []
-            config_files = ['channels_config_full.json', 'test_channels.json', 'channels_config.json']
+            config_files = ['channels_config.json', 'test_channels.json', 'channels_config.json']
             
             for config_file in config_files:
                 config_path = Path(__file__).parent / config_file
@@ -675,7 +675,7 @@ class ContentHandler(BaseHTTPRequestHandler):
             post_data = self.rfile.read(content_length)
             data = json.loads(post_data.decode('utf-8'))
             
-            config_file = data.get('config_file', 'channels_config_full.json')
+            config_file = data.get('config_file', 'channels_config.json')
             channels = data.get('channels', '')
             max_channels = data.get('max_channels', '')
             
@@ -730,7 +730,7 @@ class ContentHandler(BaseHTTPRequestHandler):
             post_data = self.rfile.read(content_length)
             data = json.loads(post_data.decode('utf-8'))
             
-            config_file = data.get('config_file', 'channels_config_full.json')
+            config_file = data.get('config_file', 'channels_config.json')
             channels = data.get('channels', '')
             language = data.get('language', 'pl')
             

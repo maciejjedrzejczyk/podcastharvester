@@ -907,7 +907,7 @@ Examples:
     python youtube_channel_downloader_indexed.py --config channels_config.json
 
   Process specific channels only:
-    python youtube_channel_downloader_indexed.py --config channels_config_full.json --channels "ColdFusion,PBoyle,Finansowaedukacja"
+    python youtube_channel_downloader_indexed.py --config channels_config.json --channels "ColdFusion,PBoyle,Finansowaedukacja"
 
   Force reindex all channels:
     python youtube_channel_downloader_indexed.py --config channels_config.json --force-reindex
@@ -919,7 +919,7 @@ Examples:
     python youtube_channel_downloader_indexed.py --config test_channels.json --max-channels 3
 
   Combine channel selection with other options:
-    python youtube_channel_downloader_indexed.py --config channels_config_full.json --channels "Asianometry,CopernicusCenter" --force-reindex
+    python youtube_channel_downloader_indexed.py --config channels_config.json --channels "Asianometry,CopernicusCenter" --force-reindex
         """
     )
     

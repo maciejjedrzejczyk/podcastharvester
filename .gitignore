@@ -51,9 +51,8 @@ downloads/
 *.tmp
 
 # Configuration files with personal data
-llm_config.json
-channels_config_full.json
-channels_config.json
+#llm_config.json
+#channels_config.json
 *_personal.json
 
 # Download control files

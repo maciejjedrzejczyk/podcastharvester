@@ -301,7 +301,7 @@ def should_preserve_deleted_records(channel_dir: Path) -> bool:
     # Look for channel configuration files to determine redownload_deleted setting
     config_files = [
         Path("channels_config.json"),
-        Path("channels_config_full.json"), 
+        Path("channels_config.json"), 
         Path("test_channels.json")
     ]
     
@@ -404,7 +404,7 @@ def create_control_file(channel_dir: Path) -> bool:
 
 def main():
     """Main function to create control files for all channel directories."""
-    downloads_dir = Path("/Users/matanyahu/Downloads/podcasts/downloads")
+    downloads_dir = Path("./downloads")
     
     if not downloads_dir.exists():
         print(f"Downloads directory {downloads_dir} does not exist")
