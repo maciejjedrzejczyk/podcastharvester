@@ -1,0 +1,58 @@
+version: '3.8'
+
+services:
+  content-summarizer:
+    build: .
+    container_name: podcast-harvester-summarizer
+    volumes:
+      # Mount local directories for data persistence
+      - ./downloads:/app/downloads
+      - ./sources:/app/sources
+      - ./config:/app/config
+      # Mount configuration files
+      - ./channels_config.json:/app/channels_config.json:ro
+      - ./llm_config.json:/app/llm_config.json:ro
+    environment:
+      - PYTHONUNBUFFERED=1
+    command: >
+      python3 content_summarizer.py 
+      --config channels_config.json
+    restart: "no"
+    depends_on:
+      - llm-server
+    
+  # Optional: LLM Server (example with Ollama)
+  llm-server:
+    image: ollama/ollama:latest
+    container_name: podcast-harvester-llm
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    environment:
+      - OLLAMA_HOST=0.0.0.0
+    restart: unless-stopped
+    profiles: ["with-llm"]
+    
+  # Alternative: Summarize specific channels only
+  content-summarizer-selective:
+    build: .
+    container_name: podcast-harvester-summarizer-selective
+    volumes:
+      - ./downloads:/app/downloads
+      - ./sources:/app/sources
+      - ./config:/app/config
+      - ./channels_config.json:/app/channels_config.json:ro
+      - ./llm_config.json:/app/llm_config.json:ro
+    environment:
+      - PYTHONUNBUFFERED=1
+    command: >
+      python3 content_summarizer.py 
+      --config channels_config.json
+      --channels "MKBHD,Fireship"
+      --language "en"
+    restart: "no"
+    profiles: ["selective"]
+
+volumes:
+  ollama_data:

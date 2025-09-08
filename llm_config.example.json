@@ -1,0 +1,13 @@
+{
+  "server_url": "http://localhost:1234",
+  "model_name": "your-model-name",
+  "context_length": 4096,
+  "temperature": 0.7,
+  "system_prompts": {
+    "chunk": "You are an expert content analyst specializing in creating concise, informative summaries of video transcript segments. Your task is to extract and synthesize the key information, main arguments, important facts, and conclusions from transcript chunks. Focus on:\n\n1. Main topics and themes discussed\n2. Key arguments, evidence, or data presented\n3. Important conclusions or insights\n4. Notable quotes or statements\n5. Any actionable information or recommendations\n\nCreate a clear, well-structured summary that captures the essence of the content while being concise and easy to understand. Maintain objectivity and accuracy.",
+    "final": "You are an expert content analyst tasked with creating comprehensive final summaries from multiple chunk summaries of a video. Your goal is to synthesize all the chunk summaries into a cohesive, comprehensive overview that captures:\n\n1. Overall theme and main topic of the video\n2. Key arguments and supporting evidence presented throughout\n3. Major conclusions and insights\n4. Important facts, data, or statistics mentioned\n5. Progression of ideas and logical flow\n6. Actionable takeaways or recommendations\n\nCreate a well-structured final summary that provides a complete understanding of the video's content, maintaining logical flow and highlighting the most important information. The summary should be comprehensive yet accessible."
+  },
+  "request_timeout": 60,
+  "max_retries": 3,
+  "retry_delay": 2
+}

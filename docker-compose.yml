@@ -1,0 +1,81 @@
+version: '3.8'
+
+services:
+  # Main PodcastHarvester Web UI
+  podcast-harvester-ui:
+    build: .
+    container_name: podcast-harvester-ui
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./downloads:/app/downloads
+      - ./sources:/app/sources
+      - ./config:/app/config
+      - ./channels_config.json:/app/channels_config.json:ro
+      - ./llm_config.json:/app/llm_config.json:ro
+    environment:
+      - PYTHONUNBUFFERED=1
+    command: >
+      python3 content_server.py 
+      --host 0.0.0.0 
+      --port 8080 
+      --downloads-dir downloads
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Download service (run on-demand)
+  podcast-harvester-download:
+    build: .
+    container_name: podcast-harvester-download
+    volumes:
+      - ./downloads:/app/downloads
+      - ./sources:/app/sources
+      - ./config:/app/config
+      - ./channels_config.json:/app/channels_config.json:ro
+      - ./llm_config.json:/app/llm_config.json:ro
+    environment:
+      - PYTHONUNBUFFERED=1
+    command: >
+      python3 podcast_harvester.py 
+      --config channels_config.json
+    restart: "no"
+    profiles: ["download"]
+
+  # Summarization service (run on-demand)
+  content-summarizer:
+    build: .
+    container_name: podcast-harvester-summarizer
+    volumes:
+      - ./downloads:/app/downloads
+      - ./sources:/app/sources
+      - ./config:/app/config
+      - ./channels_config.json:/app/channels_config.json:ro
+      - ./llm_config.json:/app/llm_config.json:ro
+    environment:
+      - PYTHONUNBUFFERED=1
+    command: >
+      python3 content_summarizer.py 
+      --config channels_config.json
+    restart: "no"
+    profiles: ["summarize"]
+
+  # Optional: Local LLM server
+  llm-server:
+    image: ollama/ollama:latest
+    container_name: podcast-harvester-llm
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    environment:
+      - OLLAMA_HOST=0.0.0.0
+    restart: unless-stopped
+    profiles: ["llm"]
+
+volumes:
+  ollama_data:

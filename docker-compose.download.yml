@@ -1,0 +1,39 @@
+version: '3.8'
+
+services:
+  podcast-harvester:
+    build: .
+    container_name: podcast-harvester-download
+    volumes:
+      # Mount local directories for data persistence
+      - ./downloads:/app/downloads
+      - ./sources:/app/sources
+      - ./config:/app/config
+      # Mount configuration files
+      - ./channels_config.json:/app/channels_config.json:ro
+      - ./llm_config.json:/app/llm_config.json:ro
+    environment:
+      - PYTHONUNBUFFERED=1
+    command: >
+      python3 podcast_harvester.py 
+      --config channels_config.json
+    restart: "no"
+    
+  # Optional: Run with specific channels
+  podcast-harvester-selective:
+    build: .
+    container_name: podcast-harvester-selective
+    volumes:
+      - ./downloads:/app/downloads
+      - ./sources:/app/sources
+      - ./config:/app/config
+      - ./channels_config.json:/app/channels_config.json:ro
+      - ./llm_config.json:/app/llm_config.json:ro
+    environment:
+      - PYTHONUNBUFFERED=1
+    command: >
+      python3 podcast_harvester.py 
+      --config channels_config.json
+      --channels "MKBHD,Fireship"
+    restart: "no"
+    profiles: ["selective"]
