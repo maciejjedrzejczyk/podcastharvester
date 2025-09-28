@@ -610,8 +610,9 @@ def download_channel_with_index(config: Dict, download_format: Optional[str] = N
     
     # Step 5: Download the videos
     download_metadata = config.get('download_metadata', True)
-    download_transcript = config.get('download_transcript', False)
     transcript_languages = config.get('transcript_languages', [])
+    # Enable transcript download if transcript_languages is specified
+    download_transcript = config.get('download_transcript', bool(transcript_languages))
     
     return download_videos_from_list(video_urls, dest_dir, output_format, content_type, 
                                    download_format, download_metadata, download_transcript,
@@ -907,7 +908,7 @@ Examples:
     python youtube_channel_downloader_indexed.py --config channels_config.json
 
   Process specific channels only:
-    python youtube_channel_downloader_indexed.py --config channels_config.json --channels "ColdFusion,PBoyle,Finansowaedukacja"
+    python youtube_channel_downloader_indexed.py --config channels_config_full.json --channels "ColdFusion,PBoyle,Finansowaedukacja"
 
   Force reindex all channels:
     python youtube_channel_downloader_indexed.py --config channels_config.json --force-reindex
@@ -919,7 +920,7 @@ Examples:
     python youtube_channel_downloader_indexed.py --config test_channels.json --max-channels 3
 
   Combine channel selection with other options:
-    python youtube_channel_downloader_indexed.py --config channels_config.json --channels "Asianometry,CopernicusCenter" --force-reindex
+    python youtube_channel_downloader_indexed.py --config channels_config_full.json --channels "Asianometry,CopernicusCenter" --force-reindex
         """
     )
     
