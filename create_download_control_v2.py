@@ -404,10 +404,23 @@ def create_control_file(channel_dir: Path) -> bool:
 
 def main():
     """Main function to create control files for all channel directories."""
-    downloads_dir = Path("./downloads")
+    # Try multiple possible downloads directory locations
+    possible_dirs = [
+        Path("./downloads"),
+        Path("/Volumes/MEDIA/podcasts/downloads"),
+        Path.home() / "Downloads" / "podcasts" / "downloads"
+    ]
     
-    if not downloads_dir.exists():
-        print(f"Downloads directory {downloads_dir} does not exist")
+    downloads_dir = None
+    for dir_path in possible_dirs:
+        if dir_path.exists():
+            downloads_dir = dir_path
+            break
+    
+    if not downloads_dir:
+        print(f"Downloads directory not found in any of these locations:")
+        for dir_path in possible_dirs:
+            print(f"  - {dir_path}")
         return
     
     print("Creating download control files...")

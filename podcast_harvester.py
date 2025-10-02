@@ -357,20 +357,12 @@ def get_existing_video_ids(channel_dir: Path, redownload_deleted: bool = False) 
     existing_ids = set()
     for video_id, video_info in downloaded_videos.items():
         files = video_info.get('files', {})
-        subfolder = video_info.get('subfolder')
         
         # Check if main content file (audio/video) exists
         main_file = files.get('audio') or files.get('video')
         if main_file:
-            if subfolder:
-                # Subfolder structure
-                file_path = channel_dir / main_file
-            else:
-                # Flat structure or relative path already included
-                if '/' in main_file:
-                    file_path = channel_dir / main_file
-                else:
-                    file_path = channel_dir / main_file
+            # The main_file path already includes the subfolder structure
+            file_path = channel_dir / main_file
             
             if file_path.exists():
                 existing_ids.add(video_id)
@@ -397,20 +389,12 @@ def get_actually_existing_video_ids(channel_dir: Path) -> Set[str]:
     existing_ids = set()
     for video_id, video_info in downloaded_videos.items():
         files = video_info.get('files', {})
-        subfolder = video_info.get('subfolder')
         
         # Check if main content file (audio/video) exists
         main_file = files.get('audio') or files.get('video')
         if main_file:
-            if subfolder:
-                # Subfolder structure
-                file_path = channel_dir / main_file
-            else:
-                # Flat structure or relative path already included
-                if '/' in main_file:
-                    file_path = channel_dir / main_file
-                else:
-                    file_path = channel_dir / main_file
+            # The main_file path already includes the subfolder structure
+            file_path = channel_dir / main_file
             
             if file_path.exists():
                 existing_ids.add(video_id)
