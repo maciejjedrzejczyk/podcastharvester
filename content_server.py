@@ -165,7 +165,7 @@ class ContentScanner:
 
 class ContentHandler(BaseHTTPRequestHandler):
     def __init__(self, *args, **kwargs):
-        self.downloads_dir = Path("downloads")  # Default value
+        # Don't set default downloads_dir here - let CustomHandler set it
         super().__init__(*args, **kwargs)
 
     def is_connection_alive(self):
@@ -187,6 +187,8 @@ class ContentHandler(BaseHTTPRequestHandler):
             self.serve_llm_config()
         elif self.path == '/api/channels-config':
             self.serve_channels_config()
+        elif self.path == '/api/debug':
+            self.serve_debug_info()
         elif self.path.startswith('/media/'):
             self.serve_media_file()
         else:
@@ -450,7 +452,7 @@ class ContentHandler(BaseHTTPRequestHandler):
     def serve_channels_config(self):
         """Serve channels configuration."""
         try:
-            config_path = Path(__file__).parent / 'channels_config.json'
+            config_path = getattr(self, 'config_path', Path(__file__).parent / 'channels_config.json')
             if config_path.exists():
                 with open(config_path, 'r', encoding='utf-8') as f:
                     config = json.load(f)
@@ -463,6 +465,22 @@ class ContentHandler(BaseHTTPRequestHandler):
             self.wfile.write(json.dumps(config, indent=2).encode())
         except Exception as e:
             self.send_error(500, f"Error loading channels config: {e}")
+
+    def serve_debug_info(self):
+        """Serve debug information."""
+        try:
+            debug_info = {
+                'downloads_dir': str(self.downloads_dir),
+                'downloads_dir_exists': self.downloads_dir.exists(),
+                'downloads_dir_absolute': str(self.downloads_dir.absolute())
+            }
+            
+            self.send_response(200)
+            self.send_header('Content-type', 'application/json')
+            self.end_headers()
+            self.wfile.write(json.dumps(debug_info, indent=2).encode())
+        except Exception as e:
+            self.send_error(500, f"Error serving debug info: {e}")
 
     def handle_save_llm_config(self):
         """Save LLM configuration."""
@@ -489,7 +507,7 @@ class ContentHandler(BaseHTTPRequestHandler):
             post_data = self.rfile.read(content_length)
             config = json.loads(post_data.decode('utf-8'))
             
-            config_path = Path(__file__).parent / 'channels_config.json'
+            config_path = getattr(self, 'config_path', Path(__file__).parent / 'channels_config.json')
             with open(config_path, 'w', encoding='utf-8') as f:
                 json.dump(config, f, indent=2)
             
@@ -507,7 +525,7 @@ class ContentHandler(BaseHTTPRequestHandler):
             post_data = self.rfile.read(content_length)
             new_channel = json.loads(post_data.decode('utf-8'))
             
-            config_path = Path(__file__).parent / 'channels_config.json'
+            config_path = getattr(self, 'config_path', Path(__file__).parent / 'channels_config.json')
             if config_path.exists():
                 with open(config_path, 'r', encoding='utf-8') as f:
                     config = json.load(f)
@@ -631,20 +649,20 @@ class ContentHandler(BaseHTTPRequestHandler):
         """Get available channels from configuration files."""
         try:
             channels = []
-            config_files = ['channels_config.json', 'test_channels.json', 'channels_config.json']
+            config_path = getattr(self, 'config_path', Path(__file__).parent / 'channels_config.json')
+            config_files = [config_path, Path(__file__).parent / 'test_channels.json']
             
             for config_file in config_files:
-                config_path = Path(__file__).parent / config_file
-                if config_path.exists():
+                if config_file.exists():
                     try:
-                        with open(config_path, 'r', encoding='utf-8') as f:
+                        with open(config_file, 'r', encoding='utf-8') as f:
                             config_data = json.load(f)
                         
                         for channel in config_data:
                             if 'channel_name' in channel:
                                 channels.append({
                                     'name': channel['channel_name'],
-                                    'config_file': config_file,
+                                    'config_file': config_file.name,
                                     'summarize': channel.get('summarize', 'no')
                                 })
                     except Exception as e:
@@ -800,15 +818,14 @@ class ContentHandler(BaseHTTPRequestHandler):
             
         print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] ERROR: {message}")
 
-def create_handler_class(downloads_dir):
-    """Create a handler class with the specified downloads directory."""
+def create_handler_class(downloads_dir, config_path):
+    """Create a handler class with the specified downloads directory and config path."""
     class CustomHandler(ContentHandler):
         def __init__(self, *args, **kwargs):
-            # Remove downloads_dir from kwargs if present to avoid conflict
-            kwargs.pop('downloads_dir', None)
-            super().__init__(*args, **kwargs)
-            # Set the downloads_dir after initialization
+            # Set the parameters before calling super().__init__
             self.downloads_dir = Path(downloads_dir)
+            self.config_path = Path(config_path)
+            super().__init__(*args, **kwargs)
     return CustomHandler
 
 def main():
@@ -819,6 +836,7 @@ def main():
     parser.add_argument('--port', type=int, default=8080, help='Server port (default: 8080)')
     parser.add_argument('--host', default='localhost', help='Server host (default: localhost)')
     parser.add_argument('--downloads-dir', default='downloads', help='Downloads directory path')
+    parser.add_argument('--config', default='channels_config.json', help='Channels config file path')
     
     args = parser.parse_args()
     
@@ -830,7 +848,7 @@ def main():
         return
     
     # Create server
-    handler_class = create_handler_class(downloads_path)
+    handler_class = create_handler_class(downloads_path, args.config)
     server = HTTPServer((args.host, args.port), handler_class)
     
     print(f"🚀 YouTube Content Manager Server Starting...")
