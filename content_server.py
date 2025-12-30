@@ -191,6 +191,8 @@ class ContentHandler(BaseHTTPRequestHandler):
             self.serve_debug_info()
         elif self.path.startswith('/media/'):
             self.serve_media_file()
+        elif self.path.startswith('/feeds/'):
+            self.serve_rss_feed()
         else:
             self.send_error(404, "Not Found")
 
@@ -368,6 +370,47 @@ class ContentHandler(BaseHTTPRequestHandler):
                 self.send_error(500, f"Error handling range request: {e}")
             except (BrokenPipeError, ConnectionResetError):
                 pass
+
+    def serve_rss_feed(self):
+        """Serve RSS feeds for external programs like FreshRSS or Audiobookshelf."""
+        try:
+            from rss_generator import RSSGenerator
+            
+            # Parse feed path: /feeds/master.xml or /feeds/channel_name.xml
+            path_parts = self.path[7:].split('/')  # Remove '/feeds/'
+            
+            if not path_parts or not path_parts[0]:
+                self.send_error(400, "Invalid feed path")
+                return
+            
+            feed_name = path_parts[0]
+            if not feed_name.endswith('.xml'):
+                self.send_error(400, "Feed must be XML format")
+                return
+            
+            # Get base URL for media links
+            host = self.headers.get('Host', 'localhost:8080')
+            base_url = f"http://{host}"
+            
+            generator = RSSGenerator(self.downloads_dir, base_url)
+            
+            # Generate appropriate feed
+            if feed_name == 'master.xml':
+                feed_content = generator.generate_master_feed()
+            else:
+                channel_name = feed_name[:-4]  # Remove .xml extension
+                feed_content = generator.generate_channel_feed(channel_name)
+            
+            self.send_response(200)
+            self.send_header('Content-type', 'application/rss+xml; charset=utf-8')
+            self.send_header('Access-Control-Allow-Origin', '*')
+            self.end_headers()
+            self.wfile.write(feed_content.encode('utf-8'))
+            
+        except ImportError:
+            self.send_error(500, "RSS generator not available")
+        except Exception as e:
+            self.send_error(500, f"Error generating RSS feed: {e}")
 
     def handle_delete_media(self):
         """Handle media-only deletion."""
