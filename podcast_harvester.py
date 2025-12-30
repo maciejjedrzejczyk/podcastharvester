@@ -18,6 +18,7 @@ import os
 import sys
 import subprocess
 import time
+import requests
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Dict, List, Optional, Set
@@ -31,6 +32,59 @@ def check_dependencies():
     except (subprocess.CalledProcessError, FileNotFoundError):
         print("Error: yt-dlp is not installed or not found in PATH.")
         print("Please install it using: pip install yt-dlp")
+        return False
+
+
+def load_send_config(send_config_path: Optional[str]) -> Optional[Dict]:
+    """Load notification configuration from send_config.json."""
+    if not send_config_path:
+        return None
+    
+    try:
+        with open(send_config_path, 'r', encoding='utf-8') as f:
+            config = json.load(f)
+        
+        if not config.get('enabled', False):
+            return None
+        
+        return config
+    except Exception as e:
+        print(f"⚠️  Warning: Could not load send config from {send_config_path}: {e}")
+        return None
+
+
+def send_notification(send_config: Dict, message: str) -> bool:
+    """Send notification via configured endpoint."""
+    if not send_config:
+        return False
+    
+    try:
+        # Prepare request
+        url = send_config['url']
+        headers = send_config.get('headers', {})
+        body_template = send_config.get('body_template', {})
+        timeout = send_config.get('timeout', 30)
+        
+        # Create body with message
+        body = {}
+        for key, value in body_template.items():
+            if isinstance(value, str) and '{message}' in value:
+                body[key] = value.replace('{message}', message)
+            else:
+                body[key] = value
+        
+        # Send POST request
+        response = requests.post(url, headers=headers, json=body, timeout=timeout)
+        
+        if response.status_code in [200, 201]:
+            print(f"  📨 Notification sent successfully")
+            return True
+        else:
+            print(f"  ⚠️  Notification failed: HTTP {response.status_code}")
+            return False
+            
+    except Exception as e:
+        print(f"  ⚠️  Notification error: {e}")
         return False
 
 
@@ -55,6 +109,59 @@ def load_control_file(channel_dir: Path) -> Dict:
             'downloaded_videos': {},
             'statistics': {'total_videos': 0}
         }
+
+
+def sync_control_file_cutoff_date(channel_dir: Path, config_cutoff_date: str) -> bool:
+    """Update control file to remove videos older than new cutoff date to prevent redownloading."""
+    control_file = channel_dir / '.download_control.json'
+    
+    if not control_file.exists():
+        return False
+    
+    try:
+        # Parse cutoff date
+        cutoff_dt = datetime.strptime(config_cutoff_date, "%Y-%m-%d")
+        cutoff_str = cutoff_dt.strftime("%Y%m%d")
+        
+        # Load control file
+        with open(control_file, 'r', encoding='utf-8') as f:
+            control_data = json.load(f)
+        
+        downloaded_videos = control_data.get('downloaded_videos', {})
+        if not downloaded_videos:
+            return False
+        
+        # Filter out videos older than cutoff date
+        # BUT: Keep deleted videos regardless of date to prevent re-downloading
+        original_count = len(downloaded_videos)
+        filtered_videos = {}
+        
+        for video_id, video_info in downloaded_videos.items():
+            upload_date = video_info.get('upload_date', '')
+            is_deleted = video_info.get('deleted', False)
+            
+            # Keep video if it's after cutoff date OR if it's marked as deleted
+            if is_deleted or (upload_date and upload_date >= cutoff_str):
+                filtered_videos[video_id] = video_info
+        
+        # Update control file if changes were made
+        if len(filtered_videos) != original_count:
+            control_data['downloaded_videos'] = filtered_videos
+            control_data['last_updated'] = datetime.now().isoformat()
+            control_data['statistics']['total_videos'] = len(filtered_videos)
+            
+            with open(control_file, 'w', encoding='utf-8') as f:
+                json.dump(control_data, f, indent=2, ensure_ascii=False)
+            
+            removed_count = original_count - len(filtered_videos)
+            print(f"  🔄 Updated control file: removed {removed_count} videos older than {config_cutoff_date}")
+            return True
+        
+        return False
+        
+    except Exception as e:
+        print(f"  ⚠️  Error syncing control file cutoff date: {e}")
+        return False
 
 
 def load_index_file(channel_dir: Path, cutoff_date: str) -> Optional[Dict]:
@@ -116,23 +223,31 @@ def save_index_file(channel_dir: Path, cutoff_date: str, index_data: Dict):
 def update_unified_index(existing_index: Dict, new_videos: List[Dict], cutoff_date: str) -> Dict:
     """Update an existing unified index with new videos and cutoff date."""
     
-    # Merge new videos with existing ones
-    existing_videos = existing_index.get('videos', {})
+    # Convert cutoff_date to YYYYMMDD format for comparison
+    cutoff_str = cutoff_date.replace('-', '')
     
+    # Filter existing videos to only keep those that meet the new cutoff date
+    existing_videos = existing_index.get('videos', {})
+    filtered_videos = {
+        vid_id: video for vid_id, video in existing_videos.items()
+        if video.get('upload_date', '') >= cutoff_str
+    }
+    
+    # Merge new videos with filtered existing ones
     for video in new_videos:
         video_id = video['id']
-        if video_id not in existing_videos:
-            existing_videos[video_id] = video
+        if video_id not in filtered_videos:
+            filtered_videos[video_id] = video
         else:
             # Keep the video with more complete data
-            if len(str(video)) > len(str(existing_videos[video_id])):
-                existing_videos[video_id] = video
+            if len(str(video)) > len(str(filtered_videos[video_id])):
+                filtered_videos[video_id] = video
     
     # Update index structure
     updated_index = existing_index.copy()
-    updated_index['videos'] = existing_videos
-    updated_index['video_ids'] = list(existing_videos.keys())
-    updated_index['total_videos'] = len(existing_videos)
+    updated_index['videos'] = filtered_videos
+    updated_index['video_ids'] = list(filtered_videos.keys())
+    updated_index['total_videos'] = len(filtered_videos)
     updated_index['last_updated'] = datetime.now().isoformat()
     updated_index['current_cutoff_date'] = cutoff_date
     
@@ -156,7 +271,7 @@ def update_unified_index(existing_index: Dict, new_videos: List[Dict], cutoff_da
     
     # Recalculate date range
     video_dates = []
-    for video in existing_videos.values():
+    for video in filtered_videos.values():
         upload_date = video.get('upload_date')
         if upload_date:
             video_dates.append(upload_date)
@@ -353,27 +468,23 @@ def get_existing_video_ids(channel_dir: Path, redownload_deleted: bool = False) 
     if not downloaded_videos:
         return set()
     
-    # Always check if files actually exist on disk
     existing_ids = set()
     for video_id, video_info in downloaded_videos.items():
-        files = video_info.get('files', {})
-        
-        # Check if main content file (audio/video) exists
-        main_file = files.get('audio') or files.get('video')
-        if main_file:
-            # The main_file path already includes the subfolder structure
-            file_path = channel_dir / main_file
-            
-            if file_path.exists():
-                existing_ids.add(video_id)
-            elif not redownload_deleted:
-                # File doesn't exist but redownload_deleted is false
-                # Still skip it to honor the "don't redownload deleted" setting
-                existing_ids.add(video_id)
-                print(f"     🚫 Skipping deleted video (redownload_deleted: false): {video_info.get('title', video_id)[:50]}...")
-            else:
-                # File doesn't exist and redownload_deleted is true
-                print(f"     📁 Will re-download deleted: {video_info.get('title', video_id)[:50]}...")
+        # If redownload_deleted is false, skip ALL videos in control file
+        if not redownload_deleted:
+            existing_ids.add(video_id)
+            if video_info.get('deleted'):
+                print(f"     🚫 Skipping deleted video: {video_info.get('title', video_id)[:50]}...")
+        else:
+            # If redownload_deleted is true, only skip videos that exist on disk
+            files = video_info.get('files', {})
+            main_file = files.get('audio') or files.get('video')
+            if main_file:
+                file_path = channel_dir / main_file
+                if file_path.exists():
+                    existing_ids.add(video_id)
+                else:
+                    print(f"     📁 Will re-download deleted: {video_info.get('title', video_id)[:50]}...")
     
     return existing_ids
 
@@ -423,6 +534,41 @@ def load_channels_config(config_file: str) -> List[Dict]:
         return []
 
 
+def update_cutoff_dates_to_today(config_file: str) -> bool:
+    """Update all cutoff dates in config file to today's date."""
+    try:
+        # Load current config
+        with open(config_file, 'r', encoding='utf-8') as f:
+            config = json.load(f)
+        
+        if not isinstance(config, list):
+            return False
+        
+        # Get today's date
+        today = datetime.now().strftime("%Y-%m-%d")
+        updated_count = 0
+        
+        # Update cutoff dates
+        for channel in config:
+            if 'cutoff_date' in channel and channel['cutoff_date'] != today:
+                channel['cutoff_date'] = today
+                updated_count += 1
+        
+        # Save updated config if changes were made
+        if updated_count > 0:
+            with open(config_file, 'w', encoding='utf-8') as f:
+                json.dump(config, f, indent=4, ensure_ascii=False)
+            
+            print(f"📅 Updated cutoff dates to {today} for {updated_count} channels")
+            return True
+        
+        return False
+        
+    except Exception as e:
+        print(f"⚠️  Error updating cutoff dates: {e}")
+        return False
+
+
 def validate_channel_config(config: Dict) -> bool:
     """Validate a single channel configuration."""
     required_fields = ['url', 'channel_name', 'content_type', 'cutoff_date']
@@ -470,7 +616,8 @@ def validate_channel_config(config: Dict) -> bool:
 
 
 def download_channel_with_index(config: Dict, download_format: Optional[str] = None, 
-                               skip_existing: bool = True, force_reindex: bool = False) -> bool:
+                               skip_existing: bool = True, force_reindex: bool = False,
+                               send_config: Optional[Dict] = None) -> bool:
     """Download channel content using pre-created index with skip functionality."""
     
     # Extract configuration
@@ -496,6 +643,9 @@ def download_channel_with_index(config: Dict, download_format: Optional[str] = N
     print(f"   URL: {channel_url}")
     print(f"   Cutoff date: {cutoff_date_str}")
     print(f"   Destination: {dest_dir}")
+    
+    # Step 0: Sync control file with new cutoff date if needed
+    sync_control_file_cutoff_date(dest_path, cutoff_date_str)
     
     # Step 1: Load or create channel index
     index_data = None
@@ -600,13 +750,14 @@ def download_channel_with_index(config: Dict, download_format: Optional[str] = N
     
     return download_videos_from_list(video_urls, dest_dir, output_format, content_type, 
                                    download_format, download_metadata, download_transcript,
-                                   transcript_languages)
+                                   transcript_languages, send_config, config)
 
 
 def download_videos_from_list(video_urls: List[str], dest_dir: str, output_format: str, 
                              content_type: str, download_format: Optional[str] = None,
                              download_metadata: bool = False, download_transcript: bool = False,
-                             transcript_languages: List[str] = None) -> bool:
+                             transcript_languages: List[str] = None, send_config: Optional[Dict] = None,
+                             channel_config: Optional[Dict] = None) -> bool:
     """Download specific videos from a list of URLs with optional metadata and transcripts."""
     
     # Determine download format
@@ -616,6 +767,9 @@ def download_videos_from_list(video_urls: List[str], dest_dir: str, output_forma
         else:
             download_format = "best"
     
+    # Ensure destination directory exists
+    Path(dest_dir).mkdir(parents=True, exist_ok=True)
+    
     # Create subfolder structure: dest_dir/video_name/files
     # Use a template that will create individual folders for each video
     output_template = os.path.join(dest_dir, f"{output_format}", f"{output_format}.%(ext)s")
@@ -624,22 +778,21 @@ def download_videos_from_list(video_urls: List[str], dest_dir: str, output_forma
     cmd = [
         'yt-dlp',
         '--output', output_template,
-        '--restrict-filenames',  # Replace special characters in filenames
         '--no-overwrites',       # Don't overwrite existing files
         '--continue',            # Resume incomplete downloads
         '--write-info-json',     # Save metadata (always enabled)
         '--write-description',   # Save video description (always enabled)
         '--ignore-errors',       # Continue on download errors
+        '--extractor-args', 'youtube:player_client=android',
     ]
     
     # Add metadata options
     if download_metadata:
         cmd.extend([
             '--write-thumbnail',     # Download thumbnail image
-            '--write-annotations',   # Download annotations if available
         ])
         # Note: Removed --write-all-thumbnails to get only the best quality thumbnail
-        print(f"  🖼️  Metadata download: ENABLED (best quality thumbnail, annotations)")
+        print(f"  🖼️  Metadata download: ENABLED (best quality thumbnail)")
     else:
         print(f"  🖼️  Metadata download: DISABLED")
     
@@ -700,6 +853,23 @@ def download_videos_from_list(video_urls: List[str], dest_dir: str, output_forma
         # Post-process thumbnails to keep only the highest resolution
         if download_metadata:
             cleanup_thumbnails(dest_dir, output_format)
+        
+        # Send notification if enabled
+        if send_config and channel_config and channel_config.get('send_notification') == 'yes':
+            channel_name = channel_config.get('channel_name', 'Unknown')
+            message = f"📥 New content downloaded!\n\nChannel: {channel_name}\nVideos: {len(video_urls)}\nType: {content_type}\nDuration: {duration:.1f}s"
+            send_notification(send_config, message)
+        
+        # Update RSS feeds after successful download (if enabled)
+        if channel_config and channel_config.get('generate_rss', False):
+            try:
+                from rss_generator import update_rss_feeds
+                downloads_path = Path(dest_dir).parent  # Get parent downloads directory
+                feeds_path = downloads_path / 'feeds'
+                update_rss_feeds(downloads_path, feeds_path)
+                print(f"  📡 RSS feeds updated")
+            except Exception as e:
+                print(f"  ⚠️  Warning: Could not update RSS feeds: {e}")
         
         return True
         
@@ -777,7 +947,8 @@ def cleanup_thumbnails(dest_dir: str, output_format: str):
 def process_channels_batch(config_file: str, download_format: Optional[str] = None, 
                           max_channels: Optional[int] = None, 
                           skip_existing: bool = True, force_reindex: bool = False,
-                          selected_channels: Optional[List[str]] = None) -> Dict[str, bool]:
+                          selected_channels: Optional[List[str]] = None,
+                          send_config: Optional[Dict] = None) -> Dict[str, bool]:
     """Process multiple channels from configuration file with indexing."""
     
     # Load configuration
@@ -843,7 +1014,7 @@ def process_channels_batch(config_file: str, download_format: Optional[str] = No
             continue
         
         # Process channel with indexing
-        success = download_channel_with_index(config, download_format, skip_existing, force_reindex)
+        success = download_channel_with_index(config, download_format, skip_existing, force_reindex, send_config)
         results[config['channel_name']] = success
         
         if success:
@@ -914,6 +1085,7 @@ Examples:
     parser.add_argument('--no-skip', action='store_true', help='Disable skipping of already downloaded videos')
     parser.add_argument('--force-reindex', action='store_true', help='Force recreation of channel indexes')
     parser.add_argument('--channels', help='Comma-separated list of specific channel names to process (e.g., "ColdFusion,PBoyle,Finansowaedukacja")')
+    parser.add_argument('--send-config', help='Path to notification configuration file (send_config.json)')
     
     # Common arguments
     parser.add_argument('--format', help='Download format (e.g., bestaudio/best, best)')
@@ -935,28 +1107,47 @@ Examples:
             print("Error: Invalid channel list format")
             sys.exit(1)
     
+    # Load send configuration if provided
+    send_config = load_send_config(args.send_config)
+    if send_config:
+        print(f"📨 Notifications enabled: {send_config['url']}")
+    
     # Process channels
     print("Running in batch processing mode with indexing...")
+    
+    # Update cutoff dates to today's date
+    update_cutoff_dates_to_today(args.config)
+    
     results = process_channels_batch(
         args.config, 
         args.format, 
         args.max_channels, 
         skip_existing, 
         args.force_reindex,
-        selected_channels
+        selected_channels,
+        send_config
     )
     
-    # Exit with error code if any downloads failed
-    if any(not success for success in results.values()):
-        sys.exit(1)
-    
-    # Automatically update control files
+    # Automatically update control files (run regardless of failures)
     print("\n🔄 Updating download control files...")
     try:
-        result = subprocess.run([
-            sys.executable, 
-            "create_download_control_v2.py"
-        ], capture_output=True, text=True, cwd=Path(__file__).parent)
+        cmd = [sys.executable, "create_download_control_v2.py"]
+        
+        # Determine downloads directory from config
+        channels_config = load_channels_config(args.config)
+        downloads_dir = None
+        if channels_config and len(channels_config) > 0:
+            # Get parent directory of first channel's output directory
+            first_output = channels_config[0].get('output_directory', 'downloads')
+            downloads_dir = str(Path(first_output).parent)
+        
+        if downloads_dir:
+            cmd.extend(["--downloads-dir", downloads_dir])
+        
+        # Pass config file path
+        cmd.extend(["--config", args.config])
+        
+        result = subprocess.run(cmd, capture_output=True, text=True, cwd=Path(__file__).parent)
         
         if result.returncode == 0:
             print("✅ Control files updated successfully!")
@@ -986,6 +1177,10 @@ Examples:
         print(f"⚠️  Warning: Could not run content summarization: {e}")
     
     print("\n🎉 Processing completed!")
+    
+    # Exit with error code if any downloads failed
+    if any(not success for success in results.values()):
+        sys.exit(1)
 
 
 if __name__ == "__main__":
