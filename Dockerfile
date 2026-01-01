@@ -20,14 +20,9 @@ RUN pip install --no-cache-dir yt-dlp
 
 # Copy application files
 COPY *.py ./
-COPY *.sh ./
-COPY *.json ./
-COPY *.html ./
-COPY README.md ./
-COPY LICENSE ./
 
 # Make scripts executable
-RUN chmod +x *.py *.sh
+RUN chmod +x *.py
 
 # Create directories for data persistence
 RUN mkdir -p /app/downloads /app/sources /app/config

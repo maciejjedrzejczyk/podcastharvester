@@ -344,7 +344,7 @@ def process_video_folder(video_folder: Path, preferred_language: str = "pl") -> 
     final_summary_file = content_summary_dir / "final_summary.txt"
     if final_summary_file.exists():
         print(f"   ⏭️  Already processed, skipping")
-        return True
+        return "skipped"
     
     # Parse SRT file
     print(f"   📝 Parsing transcript...")
@@ -370,13 +370,14 @@ def process_video_folder(video_folder: Path, preferred_language: str = "pl") -> 
     print(f"   🤖 Processing {len(chunks)} chunks with LLM...")
     
     for i, chunk in enumerate(chunks, 1):
-        print(f"   📝 Processing chunk {i}/{len(chunks)} ({len(chunk['text'])} chars)...")
+        progress = f"[{i}/{len(chunks)}]"
+        print(f"      {progress} Chunk {chunk['chunk_number']} ({len(chunk['text'])} chars)...", end=" ")
         
         summary_file = chunk_summaries_dir / f"summary_{chunk['chunk_number']:03d}.txt"
         
         # Skip if already processed
         if summary_file.exists():
-            print(f"      ⏭️  Summary already exists, loading from file")
+            print(f"⏭️  (cached)")
             with open(summary_file, 'r', encoding='utf-8') as f:
                 summary = f.read()
         else:
@@ -387,9 +388,9 @@ def process_video_folder(video_folder: Path, preferred_language: str = "pl") -> 
                 # Save chunk summary
                 with open(summary_file, 'w', encoding='utf-8') as f:
                     f.write(summary)
-                print(f"      ✅ Summary saved ({len(summary)} chars)")
+                print(f"✅ ({len(summary)} chars)")
             else:
-                print(f"      ❌ Failed to get summary for chunk {chunk['chunk_number']}")
+                print(f"❌ Failed")
                 continue
         
         chunk_summaries.append({
@@ -431,6 +432,14 @@ def process_video_folder(video_folder: Path, preferred_language: str = "pl") -> 
             json.dump(metadata, f, indent=2, ensure_ascii=False)
         
         print(f"   ✅ Final summary saved to {final_summary_file}")
+        
+        # Send notification if configured
+        try:
+            from send_summary_notification import send_summary_notification
+            send_summary_notification(video_folder, final_summary)
+        except Exception as e:
+            print(f"   ⚠️  Notification error: {e}")
+        
         return True
     else:
         print(f"   ❌ Failed to generate final summary")
@@ -461,10 +470,15 @@ def process_channel(config: Dict) -> bool:
     # Process each video folder
     processed_count = 0
     failed_count = 0
+    skipped_count = 0
     
-    for video_folder in video_folders:
+    for idx, video_folder in enumerate(video_folders, 1):
+        print(f"\n   📹 Video {idx}/{len(video_folders)}")
         try:
-            if process_video_folder(video_folder):
+            result = process_video_folder(video_folder)
+            if result == "skipped":
+                skipped_count += 1
+            elif result:
                 processed_count += 1
             else:
                 failed_count += 1
@@ -474,6 +488,7 @@ def process_channel(config: Dict) -> bool:
     
     print(f"\n   📊 Channel Summary:")
     print(f"      ✅ Processed: {processed_count}")
+    print(f"      ⏭️  Skipped (already done): {skipped_count}")
     print(f"      ❌ Failed: {failed_count}")
     print(f"      📁 Total folders: {len(video_folders)}")
     
@@ -543,7 +558,10 @@ def main():
     successful_channels = 0
     failed_channels = 0
     
-    for channel in channels_to_summarize:
+    for idx, channel in enumerate(channels_to_summarize, 1):
+        print(f"\n{'='*60}")
+        print(f"📺 Channel {idx}/{len(channels_to_summarize)}: {channel['channel_name']}")
+        print(f"{'='*60}")
         try:
             if process_channel(channel):
                 successful_channels += 1

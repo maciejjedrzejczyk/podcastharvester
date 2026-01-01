@@ -1,0 +1,18 @@
+version: '3.8'
+
+services:
+  signal-notification:
+    image: curlimages/curl:latest
+    container_name: podcast-harvester-signal-notify
+    network_mode: host
+    environment:
+      - SIGNAL_API_URL=http://localhost:17424/v2/send
+      - PHONE_NUMBER=+48535469725
+      - MESSAGE=${MESSAGE:-Default notification message}
+    command: >
+      sh -c '
+      curl -X POST -H "Content-Type: application/json" 
+      "$$SIGNAL_API_URL" 
+      -d "{\"message\": \"$$MESSAGE\", \"number\": \"$$PHONE_NUMBER\", \"recipients\": [\"$$PHONE_NUMBER\"]}" || true
+      '
+    restart: "no"

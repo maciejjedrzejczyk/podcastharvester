@@ -296,14 +296,20 @@ def load_existing_control_file(channel_dir: Path) -> Dict:
     return None
 
 
-def should_preserve_deleted_records(channel_dir: Path) -> bool:
+def should_preserve_deleted_records(channel_dir: Path, config_path: str = None) -> bool:
     """Check if we should preserve records of deleted files based on channel configuration."""
     # Look for channel configuration files to determine redownload_deleted setting
-    config_files = [
+    config_files = []
+    
+    # Add provided config path first
+    if config_path:
+        config_files.append(Path(config_path))
+    
+    # Add default config files
+    config_files.extend([
         Path("channels_config.json"),
-        Path("channels_config.json"), 
         Path("test_channels.json")
-    ]
+    ])
     
     channel_name = channel_dir.name
     
@@ -324,7 +330,7 @@ def should_preserve_deleted_records(channel_dir: Path) -> bool:
     return True
 
 
-def create_control_file(channel_dir: Path) -> bool:
+def create_control_file(channel_dir: Path, config_path: str = None) -> bool:
     """Create a control file for a channel directory, preserving deleted file records when appropriate."""
     if not channel_dir.exists() or not channel_dir.is_dir():
         print(f"Directory {channel_dir} does not exist or is not a directory")
@@ -334,7 +340,7 @@ def create_control_file(channel_dir: Path) -> bool:
     
     # Load existing control file
     existing_control = load_existing_control_file(channel_dir)
-    preserve_deleted = should_preserve_deleted_records(channel_dir)
+    preserve_deleted = should_preserve_deleted_records(channel_dir, config_path)
     
     # Scan the directory for current files
     current_control_data = scan_channel_directory(channel_dir)
@@ -346,9 +352,31 @@ def create_control_file(channel_dir: Path) -> bool:
         # Start with existing downloaded_videos
         merged_downloaded_videos = existing_control.get('downloaded_videos', {}).copy()
         
+        # Mark videos as deleted if their files no longer exist
+        deleted_count = 0
+        for video_id, video_info in merged_downloaded_videos.items():
+            # Skip placeholder IDs - they're unreliable
+            if video_id.startswith('deleted_'):
+                continue
+                
+            # Check if the subfolder exists
+            subfolder = video_info.get('subfolder')
+            if subfolder:
+                subfolder_path = channel_dir / subfolder
+                if not subfolder_path.exists() and not video_info.get('deleted'):
+                    # Subfolder is missing - mark as deleted
+                    video_info['deleted'] = True
+                    video_info['deleted_date'] = datetime.now().isoformat()
+                    deleted_count += 1
+                    print(f"  🗑️  Marked as deleted: {video_id} ({video_info.get('title', '')[:50]})")
+        
         # Update with current files (this will update existing entries and add new ones)
+        # BUT: Don't overwrite deleted records with newly downloaded files
         current_downloaded_videos = current_control_data.get('downloaded_videos', {})
-        merged_downloaded_videos.update(current_downloaded_videos)
+        for video_id, video_info in current_downloaded_videos.items():
+            # Only update if the video is not already marked as deleted
+            if video_id not in merged_downloaded_videos or not merged_downloaded_videos[video_id].get('deleted'):
+                merged_downloaded_videos[video_id] = video_info
         
         # Merge file hashes (keep existing + add new)
         merged_file_hashes = existing_control.get('file_hashes', {}).copy()
@@ -371,6 +399,8 @@ def create_control_file(channel_dir: Path) -> bool:
         preserved_count = len(merged_downloaded_videos) - len(current_downloaded_videos)
         if preserved_count > 0:
             print(f"  📋 Preserved {preserved_count} deleted file records")
+        if deleted_count > 0:
+            print(f"  🗑️  Marked {deleted_count} missing files as deleted")
     else:
         # Use current scan results only
         control_data = current_control_data
@@ -404,24 +434,39 @@ def create_control_file(channel_dir: Path) -> bool:
 
 def main():
     """Main function to create control files for all channel directories."""
-    # Try multiple possible downloads directory locations
-    possible_dirs = [
-        Path("./downloads"),
-        Path("/Volumes/MEDIA/podcasts/downloads"),
-        Path.home() / "Downloads" / "podcasts" / "downloads"
-    ]
+    import argparse
     
-    downloads_dir = None
-    for dir_path in possible_dirs:
-        if dir_path.exists():
-            downloads_dir = dir_path
-            break
+    parser = argparse.ArgumentParser(description="Create download control files for tracking downloaded content")
+    parser.add_argument('--downloads-dir', help='Path to downloads directory')
+    parser.add_argument('--config', help='Path to channels configuration file')
+    args = parser.parse_args()
     
-    if not downloads_dir:
-        print(f"Downloads directory not found in any of these locations:")
+    # If downloads directory specified, use it
+    if args.downloads_dir:
+        downloads_dir = Path(args.downloads_dir)
+        if not downloads_dir.exists():
+            print(f"Specified downloads directory does not exist: {downloads_dir}")
+            return
+    else:
+        # Try multiple possible downloads directory locations
+        possible_dirs = [
+            Path("./downloads"),
+            Path("/Volumes/MEDIA/data/podcasts/downloads"),
+            Path("/Volumes/MEDIA/podcasts/downloads"),
+            Path.home() / "Downloads" / "podcasts" / "downloads"
+        ]
+        
+        downloads_dir = None
         for dir_path in possible_dirs:
-            print(f"  - {dir_path}")
-        return
+            if dir_path.exists():
+                downloads_dir = dir_path
+                break
+        
+        if not downloads_dir:
+            print(f"Downloads directory not found in any of these locations:")
+            for dir_path in possible_dirs:
+                print(f"  - {dir_path}")
+            return
     
     print("Creating download control files...")
     print("=" * 50)
@@ -437,7 +482,7 @@ def main():
     failed = 0
     
     for channel_dir in sorted(channel_dirs):
-        if create_control_file(channel_dir):
+        if create_control_file(channel_dir, args.config):
             successful += 1
         else:
             failed += 1

@@ -5,34 +5,31 @@
 ### System Requirements
 - **Python 3.6+**
 - **yt-dlp** (for YouTube content download)
-- **ffprobe** (for media duration analysis)
 - **Git** (for cloning the repository)
 
 ### Optional Requirements
 - **Docker** (for containerized deployment)
 - **LLM Server** (Ollama, LM Studio, or OpenAI-compatible API for AI summarization)
 
-## Installation Methods
+## Quick Installation
 
-### Method 1: Automated Setup (Recommended)
+### Automated Setup (Recommended)
 
 ```bash
-# Clone the repository
+# Clone and setup
 git clone <repository-url>
 cd PodcastHarvester
-
-# Run automated setup
 chmod +x setup.sh
 ./setup.sh
 ```
 
 The setup script will:
 - Create a Python virtual environment
-- Install required dependencies
+- Install required dependencies (yt-dlp)
 - Set up example configurations
 - Make scripts executable
 
-### Method 2: Manual Setup
+### Manual Setup
 
 ```bash
 # Clone the repository
@@ -48,6 +45,95 @@ pip install yt-dlp
 
 # Make scripts executable
 chmod +x *.py *.sh
+```
+
+## Verification
+
+### Test Installation
+```bash
+# Check yt-dlp
+yt-dlp --version
+
+# Test basic functionality
+python3 podcast_harvester.py --help
+
+# Start web interface
+./start_web_app.sh
+# Open http://localhost:8080
+```
+
+### First Run
+```bash
+# Copy example configuration
+cp config/channels_config.example.json channels_config.json
+
+# Edit with your channels
+nano channels_config.json
+
+# Test with example channels
+python3 podcast_harvester.py --config config/test_channels.json
+```
+
+## Docker Installation
+
+### Quick Start
+```bash
+# Clone repository
+git clone <repository-url>
+cd PodcastHarvester
+
+# Start web interface
+docker-compose up --build
+
+# Run content harvesting
+docker-compose -f docker-compose.download.yml up --build
+```
+
+## Troubleshooting
+
+### Common Issues
+
+**Python not found:**
+```bash
+# Install Python 3
+# Ubuntu/Debian: sudo apt install python3 python3-pip python3-venv
+# macOS: brew install python3
+# Windows: Download from python.org
+```
+
+**yt-dlp installation fails:**
+```bash
+# Update pip first
+pip install --upgrade pip
+
+# Install yt-dlp
+pip install yt-dlp
+
+# Alternative: system package manager
+# Ubuntu/Debian: sudo apt install yt-dlp
+```
+
+**Permission errors:**
+```bash
+# Fix script permissions
+chmod +x *.py *.sh
+
+# Fix directory permissions
+chmod -R 755 downloads/
+```
+
+## Next Steps
+
+After installation:
+
+1. **Configure Channels** - Edit `channels_config.json` with your YouTube channels
+2. **Start Web Interface** - Run `./start_web_app.sh` for the management interface
+3. **Run First Harvest** - Execute `python3 podcast_harvester.py --config channels_config.json`
+
+For detailed configuration options, see:
+- **[Configuration Guide](CONFIGURATION.md)** - Channel and system setup
+- **[Web Interface Guide](WEB_INTERFACE.md)** - Using the management interface
+- **[Advanced Features](ADVANCED_FEATURES.md)** - AI summarization, RSS feeds, and more
 
 # Copy configuration examples
 cp channels_config.example.json channels_config.json

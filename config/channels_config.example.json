@@ -12,7 +12,8 @@
       "en"
     ],
     "redownload_deleted": false,
-    "summarize": "yes"
+    "summarize": "yes",
+    "generate_rss": true
   },
   {
     "url": "https://www.youtube.com/@Fireship",
@@ -27,7 +28,8 @@
       "en"
     ],
     "redownload_deleted": false,
-    "summarize": "yes"
+    "summarize": "yes",
+    "generate_rss": true
   },
   {
     "url": "https://www.youtube.com/@LowBudgetStories",
@@ -42,6 +44,7 @@
       "en"
     ],
     "redownload_deleted": false,
-    "summarize": "yes"
+    "summarize": "yes",
+    "generate_rss": true
   }
 ]

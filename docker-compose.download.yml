@@ -6,34 +6,66 @@ services:
     container_name: podcast-harvester-download
     volumes:
       # Mount local directories for data persistence
-      - ./downloads:/app/downloads
-      - ./sources:/app/sources
-      - ./config:/app/config
+      - /Volumes/MEDIA/data/podcasts/downloads:/app/downloads
+      - /Volumes/MEDIA/data/podcasts/sources:/app/sources
+      - /Volumes/MEDIA/data/podcasts/config:/app/config
       # Mount configuration files
-      - ./channels_config.json:/app/channels_config.json:ro
-      - ./llm_config.json:/app/llm_config.json:ro
+      - /Volumes/MEDIA/data/podcasts/channels_config_docker.json:/app/channels_config.json:ro
+      - /Volumes/MEDIA/data/podcasts/llm_config_docker.json:/app/llm_config.json:ro
     environment:
       - PYTHONUNBUFFERED=1
     command: >
       python3 podcast_harvester.py 
       --config channels_config.json
     restart: "no"
-    
-  # Optional: Run with specific channels
-  podcast-harvester-selective:
+
+  # podcast-harvester:
+  #   build: .
+  #   container_name: podcast-harvester-download
+  #   volumes:
+  #     # Mount local directories for data persistence
+  #     - /Volumes/MEDIA/data/podcasts/downloads:/app/downloads
+  #     - /Volumes/MEDIA/data/podcasts/sources:/app/sources
+  #     - /Volumes/MEDIA/data/podcasts/config:/app/config
+  #     # Mount configuration files
+  #     - /Volumes/MEDIA/data/podcasts/channels_config_docker.json:/app/channels_config.json:ro
+  #     - /Volumes/MEDIA/data/podcasts/llm_config_docker.json:/app/llm_config.json:ro
+  #   environment:
+  #     - PYTHONUNBUFFERED=1
+  #   command: >
+  #     tail -f /dev/null
+  #   restart: "no"
+
+  podcast-harvester-reindex:
     build: .
-    container_name: podcast-harvester-selective
+    container_name: podcast-harvester-download-force-reindex
     volumes:
-      - ./downloads:/app/downloads
-      - ./sources:/app/sources
-      - ./config:/app/config
-      - ./channels_config.json:/app/channels_config.json:ro
-      - ./llm_config.json:/app/llm_config.json:ro
+      # Mount local directories for data persistence
+      - /Volumes/MEDIA/data/podcasts/downloads:/app/downloads
+      - /Volumes/MEDIA/data/podcasts/sources:/app/sources
+      - /Volumes/MEDIA/data/podcasts/config:/app/config
+      # Mount configuration files
+      - /Volumes/MEDIA/data/podcasts/channels_config_docker.json:/app/channels_config.json:ro
+      - /Volumes/MEDIA/data/podcasts/llm_config.json:/app/llm_config.json:ro
     environment:
       - PYTHONUNBUFFERED=1
     command: >
       python3 podcast_harvester.py 
-      --config channels_config.json
-      --channels "MKBHD,Fireship"
+      --config channels_config.json --force-reindex
     restart: "no"
-    profiles: ["selective"]
+
+  signal-notification-reindex:
+    image: curlimages/curl:latest
+    container_name: podcast-harvester-signal-notify-reindex
+    depends_on:
+      - podcast-harvester-reindex
+    environment:
+      - SIGNAL_API_URL=http://host.docker.internal:17424/v2/send
+      - PHONE_NUMBER=+48535469725
+    command: >
+      sh -c "
+      curl -X POST -H 'Content-Type: application/json' 
+      '$$SIGNAL_API_URL' 
+      -d '{\"message\": \"🔄 Podcast reindexing completed!\", \"number\": \"$$PHONE_NUMBER\", \"recipients\": [\"$$PHONE_NUMBER\"]}' || true
+      "
+    restart: "no"

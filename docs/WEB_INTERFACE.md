@@ -1,52 +1,307 @@
 # Web Interface Guide
 
-## Overview
+This guide covers using the PodcastHarvester web management interface for content browsing, ad-hoc processing, and system management.
 
-The PodcastHarvester web interface provides a modern, responsive UI for managing harvested content, configuring the system, and processing individual YouTube URLs.
-
-## Getting Started
+## Quick Start
 
 ### Starting the Web Interface
 
 ```bash
-# Basic startup
+# Simple startup
 ./start_web_app.sh
+# Open http://localhost:8080
 
 # Custom configuration
-./start_web_app.sh --host 0.0.0.0 --port 9000 --downloads-dir /path/to/downloads
+python3 content_server.py --host 0.0.0.0 --port 9000 --downloads-dir /path/to/downloads
 ```
 
-Access the interface at `http://localhost:8080` (or your configured port).
+### Command Line Options
 
-## Main Interface
+| Option | Description | Default |
+|--------|-------------|---------|
+| `--host` | Server host address | `localhost` |
+| `--port` | Server port | `8080` |
+| `--downloads-dir` | Downloads directory path | `downloads` |
 
-### Content Grid
+## Core Features
 
-The main interface displays all harvested content in an organized grid:
+### 1. Content Library
 
-- **Search Bar**: Real-time search across titles, channels, and summaries
-- **Filter Buttons**: 
-  - **All**: Show all content
-  - **Summarized**: Only content with AI summaries
-  - **Audio**: Audio-only content
-  - **Video**: Video content
+**Browse Downloaded Content:**
+- Grid view of all downloaded videos/audio
+- Filter by channel using dropdown
+- Real-time search by title
+- Sort by date, channel, or title
 
-### Content Cards
-
-Each content item is displayed in an expandable card showing:
-
-**Header (Always Visible):**
-- Video/audio title
-- Channel name
+**Content Information:**
+- Thumbnail previews
+- Video title and channel name
 - Upload date and duration
-- Content type indicator
-- Summary status and chunk count
-- Processing language
+- Available formats (audio/video)
+- AI summary status
 
-**Expanded View:**
-- Full AI-generated summary
-- Built-in media player with controls
-- Delete options (media only or entire folder)
+### 2. Media Playback
+
+**Built-in Players:**
+- HTML5 audio player for MP3/M4A files
+- HTML5 video player for MP4/WebM files
+- Full-screen video support
+- Playback controls and progress tracking
+
+### 3. Content Management
+
+**Delete Operations:**
+- **Delete Media Only**: Removes audio/video, keeps metadata
+- **Delete Entire Folder**: Removes all files and folders
+- Confirmation dialogs prevent accidents
+- Immediate UI updates
+
+**Download Options:**
+- Direct download links for media files
+- Original filenames preserved
+- Batch download support
+
+### 4. AI Summary Viewing
+
+**Summary Display:**
+- Full AI-generated content summaries
+- Chunk-by-chunk breakdown view
+- Processing metadata and timestamps
+- Copy-to-clipboard functionality
+
+**Summary Status Indicators:**
+- ⏳ **In Progress**: Currently processing
+- ✅ **Completed**: Summary available
+- ❌ **Failed**: Processing errors
+- ➖ **Not Processed**: No summary
+
+## Ad-hoc URL Processing
+
+### Process Individual URLs
+
+**Step-by-Step:**
+1. Navigate to **Settings → Process URL**
+2. Enter YouTube video or channel URL
+3. Configure processing options:
+   - Content type (audio/video)
+   - Download transcripts (required for summaries)
+   - Enable AI summarization
+   - Transcript languages
+4. Click **"Process URL"**
+5. Monitor real-time progress
+
+**Processing Configuration:**
+```json
+{
+  "url": "https://www.youtube.com/watch?v=VIDEO_ID",
+  "content_type": "audio",
+  "download_transcript": true,
+  "summarize": true,
+  "transcript_languages": ["en"]
+}
+```
+
+### Real-time Progress Monitoring
+
+**Progress Indicators:**
+- Download progress bars
+- Summarization status updates
+- Error notifications with details
+- Completion notifications
+
+**Status Updates:**
+- Current operation details
+- Progress percentage
+- Estimated time remaining
+- Error messages and recovery suggestions
+
+## Configuration Management
+
+### LLM Configuration
+
+**Settings Panel:**
+- Server URL and model configuration
+- System prompts for summarization
+- Request timeout and retry settings
+- **Test Connectivity** button for validation
+
+**Example Configuration:**
+```json
+{
+  "server_url": "http://localhost:1234",
+  "model_name": "llama-3.1-8b-instruct",
+  "context_length": 4096,
+  "temperature": 0.7
+}
+```
+
+### Channel Configuration
+
+**Management Features:**
+- Add/edit/remove channels
+- Batch configuration updates
+- Import/export configurations
+- Real-time validation and error checking
+
+## Advanced Features
+
+### Batch Operations
+
+**Bulk Actions:**
+- Select multiple content items
+- Batch delete operations
+- Mass summarization requests
+- Bulk metadata updates
+
+**Channel Operations:**
+- Process entire channels from web interface
+- Update channel configurations
+- Regenerate RSS feeds
+- Monitor channel processing status
+
+### Search and Filtering
+
+**Advanced Search:**
+- Real-time search as you type
+- Search video titles and descriptions
+- Case-insensitive matching
+- Filter by processing status
+
+**Content Filtering:**
+- Filter by channel
+- Filter by content type (audio/video)
+- Filter by summary status
+- Date range filtering
+
+## API Integration
+
+### REST API Endpoints
+
+**Content Management:**
+- `GET /api/content` - List all downloaded content
+- `POST /api/process-url` - Process individual YouTube URL
+- `DELETE /api/content/{path}` - Delete content (media or folder)
+
+**Configuration:**
+- `GET /api/config` - Get system configurations
+- `POST /api/config` - Update configurations
+
+**Media Serving:**
+- `GET /media/{path}` - Serve media files directly
+- `GET /feeds/{channel}.xml` - RSS feeds
+
+### WebSocket Events
+
+**Real-time Updates:**
+- `progress_update` - Processing progress notifications
+- `content_added` - New content available
+- `content_deleted` - Content removed
+- `error_occurred` - Error notifications with details
+
+## Interface Customization
+
+### Themes and Layout
+
+**Built-in Options:**
+- Light theme (default)
+- Dark theme support
+- Responsive design for mobile/tablet
+- Grid and list view modes
+
+**Layout Options:**
+- Adjustable grid size
+- Sortable content display
+- Collapsible sidebar
+- Full-screen media playback
+
+## Troubleshooting
+
+### Common Issues
+
+**Web Interface Not Loading:**
+```bash
+# Check server status
+ps aux | grep content_server.py
+
+# Test port availability
+netstat -tlnp | grep :8080
+
+# Start with different port
+python3 content_server.py --port 8081
+```
+
+**Content Not Displaying:**
+```bash
+# Verify downloads directory
+ls -la downloads/
+
+# Check permissions
+chmod -R 755 downloads/
+
+# Test content scanner
+python3 -c "
+from content_server import ContentScanner
+from pathlib import Path
+scanner = ContentScanner(Path('downloads'))
+print(f'Found {len(scanner.scan_downloads_directory())} items')
+"
+```
+
+**Media Playback Issues:**
+- Verify file formats are browser-compatible
+- Check file permissions and accessibility
+- Test with different browsers
+- Ensure media files aren't corrupted
+
+**Summary Display Problems:**
+- Verify `content_summary/` folders exist
+- Check LLM server connectivity
+- Review processing logs for errors
+- Ensure proper file permissions
+
+### Performance Optimization
+
+**Large Content Libraries:**
+- Use channel filtering to reduce load
+- Enable browser caching
+- Optimize thumbnail loading
+- Consider pagination for very large libraries
+
+**Network Optimization:**
+- Use local network access when possible
+- Enable compression for large media files
+- Implement proper caching headers
+- Monitor bandwidth usage
+
+## Security Considerations
+
+### Access Control
+
+**Network Security:**
+- Default binding to `localhost` for security
+- Use reverse proxy (nginx/Apache) for external access
+- Implement HTTPS for secure connections
+- Configure firewall rules appropriately
+
+**File System Security:**
+- Proper permissions on downloads directory
+- Path sanitization to prevent directory traversal
+- Input validation for all user inputs
+- Regular security updates
+
+### Data Protection
+
+**Privacy Features:**
+- All processing happens locally by default
+- No external data transmission (except to configured LLM)
+- User data stored locally only
+- Configurable data retention
+
+**Backup Recommendations:**
+- Regular configuration backups
+- Content metadata preservation
+- Document recovery procedures
+- Test restore processes regularly
 
 ### Media Player Controls
 

@@ -2,85 +2,77 @@
 
 A comprehensive YouTube channel content harvesting system with AI-powered summarization, smart indexing, and web-based management interface.
 
-## 🚀 Key Features
+## 🚀 Quick Setup
 
-- **Smart Content Harvesting**: Download audio/video from YouTube channels with intelligent indexing
-- **AI-Powered Summarization**: Generate comprehensive summaries using local or cloud LLM servers
-- **Web Management Interface**: Modern web UI for content management, configuration, and ad-hoc processing
-- **Ad-hoc URL Processing**: Process individual YouTube URLs with transcripts and summaries
-- **Automatic Progress Tracking**: Real-time progress indicators and status updates
-- **Docker Support**: Complete containerized deployment options
-- **Configuration Management**: Web-based LLM and channel configuration
-- **Transcript Support**: Multi-language subtitle download and processing
-
-## 🎯 Quick Start
-
-### 1. Clone and Setup
+### 1. Install & Configure
 ```bash
 git clone <repository-url>
 cd PodcastHarvester
 chmod +x setup.sh
 ./setup.sh
-```
 
-### 2. Configure Channels
-```bash
-cp channels_config.example.json channels_config.json
+# Configure your channels
+cp config/channels_config.example.json channels_config.json
 # Edit channels_config.json with your YouTube channels
 ```
 
-### 3. Setup AI Summarization (Optional)
-```bash
-cp llm_config.example.json llm_config.json
-# Edit llm_config.json with your LLM server details
-```
-
-### 4. Start Web Interface
+### 2. Start Web Interface
 ```bash
 ./start_web_app.sh
 # Open http://localhost:8080 in your browser
 ```
 
-### 5. Run Your First Harvest
-- Use the web interface Settings → Process URL for individual videos
-- Or run batch processing: `python3 podcast_harvester.py --config channels_config.json`
+### 3. Run Content Harvesting
+```bash
+# Batch processing from config file
+python3 podcast_harvester.py --config channels_config.json
+
+# Or use the web interface for individual URLs
+```
 
 ## 🐳 Docker Quick Start
-
 ```bash
-# Start web interface
-docker-compose up --build
-
-# Run content harvesting
-docker-compose -f docker-compose.download.yml up --build
-
-# Generate AI summaries
-docker-compose -f docker-compose.summary.yml up --build
+docker-compose up --build  # Web interface
+docker-compose -f docker-compose.download.yml up --build  # Content harvesting
 ```
+
+## 🎯 Key Features
+
+- **Smart Content Harvesting** - Download audio/video with intelligent skip logic
+- **AI-Powered Summarization** - Generate comprehensive summaries using local/cloud LLM
+- **Web Management Interface** - Modern UI for content management and ad-hoc processing
+- **RSS Feed Integration** - Automatic feeds for FreshRSS, Audiobookshelf, etc.
+- **Smart Indexing System** - Efficient channel indexing with skip functionality
+- **Multi-language Transcripts** - Download subtitles in multiple languages
+- **Docker Support** - Complete containerized deployment
 
 ## 📖 Documentation
 
-- **[Installation Guide](docs/INSTALLATION.md)** - Detailed setup instructions
-- **[Configuration Guide](docs/CONFIGURATION.md)** - Channel and LLM configuration
-- **[Web Interface Guide](docs/WEB_INTERFACE.md)** - Using the web management interface
+### Essential Guides
+- **[Installation Guide](docs/INSTALLATION.md)** - Detailed setup and dependencies
+- **[Configuration Guide](docs/CONFIGURATION.md)** - Channel and system configuration
+- **[Web Interface Guide](docs/WEB_INTERFACE.md)** - Using the management interface
+
+### Advanced Features
+- **[Advanced Features](docs/ADVANCED_FEATURES.md)** - Indexing, notifications, RSS feeds
+- **[Architecture Overview](docs/ARCHITECTURE.md)** - System components and workflows
+- **[AI Summarization](docs/AI_SUMMARIZATION.md)** - LLM setup and summarization workflow
+
+### Operations & Maintenance
+- **[Maintenance Guide](docs/MAINTENANCE.md)** - Operational procedures and troubleshooting
+- **[Migration Guide](docs/MIGRATION.md)** - Upgrading and migrating setups
 - **[Docker Deployment](docs/DOCKER.md)** - Container deployment options
+
+### Reference
 - **[API Reference](docs/API_REFERENCE.md)** - Complete API documentation
 - **[FAQ](docs/FAQ.md)** - Frequently asked questions
 - **[Troubleshooting](docs/TROUBLESHOOTING.md)** - Common issues and solutions
 
-## 🛠️ Core Components
-
-- **`podcast_harvester.py`** - Main content harvesting engine
-- **`content_server.py`** - Web application backend
-- **`content_viewer.html`** - Modern web interface
-- **`content_summarizer.py`** - AI summarization engine
-
 ## 📊 System Requirements
 
-- Python 3.6+
-- yt-dlp
-- Optional: Docker for containerized deployment
-- Optional: Local LLM server for AI summarization
+- **Python 3.6+** and **yt-dlp** (required)
+- **Docker** (optional, for containerized deployment)
+- **LLM Server** (optional, for AI summarization)
 
 ## 🤝 Contributing
 
@@ -93,12 +85,6 @@ docker-compose -f docker-compose.summary.yml up --build
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## 🆘 Support
-
-- Check the [FAQ](docs/FAQ.md) for common questions
-- Review [Troubleshooting](docs/TROUBLESHOOTING.md) for issues
-- Open an issue for bugs or feature requests
-
 ---
 
-**💡 Pro Tip**: Start with the test configuration (`test_channels.json`) to familiarize yourself with the system before processing large channel lists.
+**💡 Pro Tip**: Start with `test_channels.json` to familiarize yourself with the system before processing large channel lists.

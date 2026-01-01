@@ -1,8 +1,10 @@
 # Configuration Guide
 
+This guide covers basic channel configuration and system setup for PodcastHarvester.
+
 ## Channel Configuration
 
-### Basic Channel Setup
+### Basic Setup
 
 Create or edit `channels_config.json`:
 
@@ -22,19 +24,28 @@ Create or edit `channels_config.json`:
 ]
 ```
 
-### Configuration Fields
+### Required Fields
 
-| Field | Required | Description | Example |
-|-------|----------|-------------|---------|
-| `url` | ✅ | YouTube channel URL | `"https://www.youtube.com/@mkbhd"` |
-| `channel_name` | ✅ | Clean name for directories | `"MKBHD"` |
-| `content_type` | ✅ | Download format | `"audio"` or `"video"` |
-| `cutoff_date` | ✅ | Only download content after this date | `"2025-01-01"` |
-| `output_format` | ❌ | Filename template | `"%(upload_date)s_%(title)s"` |
-| `output_directory` | ❌ | Target directory | `"downloads/MKBHD"` |
-| `transcript_languages` | ❌ | Subtitle languages | `["en", "es", "fr"]` |
-| `redownload_deleted` | ❌ | Re-download deleted files | `true` or `false` |
-| `summarize` | ❌ | Enable AI summarization | `"yes"` or `"no"` |
+| Field | Description | Example |
+|-------|-------------|---------|
+| `url` | YouTube channel URL | `"https://www.youtube.com/@mkbhd"` |
+| `channel_name` | Clean name for directories | `"MKBHD"` |
+| `content_type` | Download format | `"audio"` or `"video"` |
+| `cutoff_date` | Only download content after this date | `"2025-01-01"` |
+
+### Optional Fields
+
+| Field | Default | Description |
+|-------|---------|-------------|
+| `output_format` | `"%(upload_date)s_%(channel_name)s_%(title)s"` | Filename template |
+| `output_directory` | `"downloads/{channel_name}"` | Target directory |
+| `transcript_languages` | `[]` | Subtitle languages to download |
+| `download_transcript` | `false` | Enable transcript download |
+| `download_metadata` | `true` | Download thumbnails and metadata |
+| `redownload_deleted` | `false` | Re-download deleted files |
+| `summarize` | `"no"` | Enable AI summarization |
+| `generate_rss` | `false` | Generate RSS feeds |
+| `send_notification` | `"no"` | Send completion notifications |
 
 ### Content Types
 
@@ -47,6 +58,133 @@ Create or edit `channels_config.json`:
 - Downloads best quality video
 - Larger file sizes
 - Preserves visual content
+
+## LLM Configuration (Optional)
+
+For AI summarization, create `llm_config.json`:
+
+```json
+{
+  "server_url": "http://localhost:1234",
+  "model_name": "llama-3.1-8b-instruct",
+  "context_length": 4096,
+  "temperature": 0.7,
+  "request_timeout": 60,
+  "max_retries": 3,
+  "retry_delay": 2
+}
+```
+
+### LLM Server Options
+
+**Local Servers:**
+- **Ollama**: `http://localhost:11434`
+- **LM Studio**: `http://localhost:1234`
+- **Text Generation WebUI**: `http://localhost:5000`
+
+**Cloud Services:**
+- OpenAI-compatible APIs
+- Custom endpoints
+
+## Notification Configuration (Optional)
+
+For webhook notifications, create `notification_config.json`:
+
+```json
+{
+  "enabled": true,
+  "url": "https://your-webhook-url.com/notify",
+  "headers": {
+    "Content-Type": "application/json",
+    "Authorization": "Bearer your-token"
+  },
+  "body_template": {
+    "text": "{message}",
+    "channel": "#downloads"
+  },
+  "timeout": 30
+}
+```
+
+## Example Configurations
+
+### Podcast Channel (Audio Only)
+```json
+{
+  "url": "https://www.youtube.com/@podcastchannel",
+  "channel_name": "PodcastChannel",
+  "content_type": "audio",
+  "cutoff_date": "2024-01-01",
+  "download_transcript": true,
+  "transcript_languages": ["en"],
+  "summarize": "yes",
+  "generate_rss": true
+}
+```
+
+### Educational Channel (Video with Summaries)
+```json
+{
+  "url": "https://www.youtube.com/@educationchannel",
+  "channel_name": "EducationChannel",
+  "content_type": "video",
+  "cutoff_date": "2024-06-01",
+  "download_metadata": true,
+  "download_transcript": true,
+  "transcript_languages": ["en", "es"],
+  "summarize": "yes",
+  "send_notification": "yes"
+}
+```
+
+### News Channel (Video Only, No Processing)
+```json
+{
+  "url": "https://www.youtube.com/@newschannel",
+  "channel_name": "NewsChannel",
+  "content_type": "video",
+  "cutoff_date": "2024-12-01",
+  "download_metadata": true,
+  "summarize": "no",
+  "generate_rss": false
+}
+```
+
+## Configuration Validation
+
+### Test Configuration
+```bash
+# Validate JSON syntax
+python3 -c "import json; json.load(open('channels_config.json'))"
+
+# Test with single channel
+python3 podcast_harvester.py --config test_channels.json --max-channels 1
+```
+
+### Common Issues
+
+**Invalid JSON:**
+- Check for missing commas, quotes, or brackets
+- Use a JSON validator online
+- Ensure proper escaping of special characters
+
+**Invalid Dates:**
+- Use YYYY-MM-DD format only
+- Ensure dates are not in the future
+- Check for typos in date strings
+
+**Invalid URLs:**
+- Use full YouTube channel URLs
+- Ensure channels are public and accessible
+- Test URLs in browser first
+
+## Advanced Configuration
+
+For advanced features like indexing system configuration, RSS feed customization, and notification templates, see:
+
+- **[Advanced Features](ADVANCED_FEATURES.md)** - Detailed configuration options
+- **[AI Summarization](AI_SUMMARIZATION.md)** - LLM setup and prompts
+- **[Architecture](ARCHITECTURE.md)** - System configuration details
 
 ### Filename Templates
 

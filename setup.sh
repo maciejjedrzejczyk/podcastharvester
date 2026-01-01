@@ -37,8 +37,26 @@ else
     pip install yt-dlp
 fi
 
-# Make the script executable
-chmod +x podcast_harvester.py
+# Make scripts executable
+chmod +x podcast_harvester.py content_server.py content_summarizer.py
+chmod +x rss_generator.py start_web_app.sh
+
+# Copy example configurations
+echo "Setting up example configurations..."
+if [ ! -f "channels_config.json" ]; then
+    cp config/channels_config.example.json channels_config.json
+    echo "Created channels_config.json from example"
+fi
+
+if [ ! -f "llm_config.json" ]; then
+    cp config/llm_config.example.json llm_config.json
+    echo "Created llm_config.json from example"
+fi
+
+if [ ! -f "notification_config.json" ]; then
+    cp config/notification_config.example.json notification_config.json
+    echo "Created notification_config.json from example"
+fi
 
 # Create activation script
 cat > activate_env.sh << 'EOF'
@@ -46,7 +64,8 @@ cat > activate_env.sh << 'EOF'
 echo "Activating PodcastHarvester environment..."
 source venv/bin/activate
 echo "Environment activated. You can now run:"
-echo "  ./podcast_harvester.py"
+echo "  python3 podcast_harvester.py --config channels_config.json"
+echo "  ./start_web_app.sh"
 echo ""
 echo "To deactivate the environment, run: deactivate"
 EOF
@@ -56,16 +75,11 @@ chmod +x activate_env.sh
 echo ""
 echo "Setup complete!"
 echo ""
-echo "IMPORTANT: To use PodcastHarvester, you need to activate the virtual environment first:"
-echo "  source venv/bin/activate"
-echo "  OR"
-echo "  ./activate_env.sh"
+echo "Next steps:"
+echo "1. Edit channels_config.json with your YouTube channels"
+echo "2. Start the web interface: ./start_web_app.sh"
+echo "3. Or run batch processing: python3 podcast_harvester.py --config channels_config.json"
 echo ""
-echo "Then you can run:"
-echo "  Interactive mode:    ./podcast_harvester.py"
-echo "  Non-interactive:     ./podcast_harvester.py --url <URL> --cutoff <DATE>"
+echo "For AI summarization, configure llm_config.json with your LLM server details."
 echo ""
-echo "Example:"
-echo "  ./podcast_harvester.py --url 'https://www.youtube.com/@channelname' --format 'best' --cutoff '2023-01-01'"
-echo ""
-echo "To deactivate the environment when done: deactivate"
+echo "Documentation: See docs/ directory for detailed guides"
