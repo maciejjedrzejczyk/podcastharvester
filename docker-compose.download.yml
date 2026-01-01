@@ -60,8 +60,8 @@ services:
     depends_on:
       - podcast-harvester-reindex
     environment:
-      - SIGNAL_API_URL=http://host.docker.internal:17424/v2/send
-      - PHONE_NUMBER=+48535469725
+      - SIGNAL_API_URL=http://host.docker.internal:8080/v2/send
+      - PHONE_NUMBER=+1234567890
     command: >
       sh -c "
       curl -X POST -H 'Content-Type: application/json' 

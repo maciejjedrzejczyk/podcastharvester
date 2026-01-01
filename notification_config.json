@@ -1,9 +1,9 @@
 {
-  "enabled": true,
-  "api_url": "http://192.168.0.122:17424/v2/send",
-  "sender_number": "+48535469725",
+  "enabled": false,
+  "api_url": "http://localhost:8080/v2/send",
+  "sender_number": "+1234567890",
   "recipients": [
-    "+48535469725"
+    "+1234567890"
   ],
   "max_message_length": 4000
 }

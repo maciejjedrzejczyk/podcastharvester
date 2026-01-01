@@ -6,8 +6,8 @@ services:
     container_name: podcast-harvester-signal-notify
     network_mode: host
     environment:
-      - SIGNAL_API_URL=http://localhost:17424/v2/send
-      - PHONE_NUMBER=+48535469725
+      - SIGNAL_API_URL=http://localhost:8080/v2/send
+      - PHONE_NUMBER=+1234567890
       - MESSAGE=${MESSAGE:-Default notification message}
     command: >
       sh -c '
