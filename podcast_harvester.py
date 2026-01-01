@@ -112,56 +112,15 @@ def load_control_file(channel_dir: Path) -> Dict:
 
 
 def sync_control_file_cutoff_date(channel_dir: Path, config_cutoff_date: str) -> bool:
-    """Update control file to remove videos older than new cutoff date to prevent redownloading."""
-    control_file = channel_dir / '.download_control.json'
+    """DISABLED: This function previously removed videos from control file based on cutoff date.
     
-    if not control_file.exists():
-        return False
+    This caused re-downloads when cutoff dates changed. The control file should be a permanent
+    record of ALL downloaded content, regardless of cutoff date changes. The channel index
+    handles cutoff date filtering, not the control file.
     
-    try:
-        # Parse cutoff date
-        cutoff_dt = datetime.strptime(config_cutoff_date, "%Y-%m-%d")
-        cutoff_str = cutoff_dt.strftime("%Y%m%d")
-        
-        # Load control file
-        with open(control_file, 'r', encoding='utf-8') as f:
-            control_data = json.load(f)
-        
-        downloaded_videos = control_data.get('downloaded_videos', {})
-        if not downloaded_videos:
-            return False
-        
-        # Filter out videos older than cutoff date
-        # BUT: Keep deleted videos regardless of date to prevent re-downloading
-        original_count = len(downloaded_videos)
-        filtered_videos = {}
-        
-        for video_id, video_info in downloaded_videos.items():
-            upload_date = video_info.get('upload_date', '')
-            is_deleted = video_info.get('deleted', False)
-            
-            # Keep video if it's after cutoff date OR if it's marked as deleted
-            if is_deleted or (upload_date and upload_date >= cutoff_str):
-                filtered_videos[video_id] = video_info
-        
-        # Update control file if changes were made
-        if len(filtered_videos) != original_count:
-            control_data['downloaded_videos'] = filtered_videos
-            control_data['last_updated'] = datetime.now().isoformat()
-            control_data['statistics']['total_videos'] = len(filtered_videos)
-            
-            with open(control_file, 'w', encoding='utf-8') as f:
-                json.dump(control_data, f, indent=2, ensure_ascii=False)
-            
-            removed_count = original_count - len(filtered_videos)
-            print(f"  🔄 Updated control file: removed {removed_count} videos older than {config_cutoff_date}")
-            return True
-        
-        return False
-        
-    except Exception as e:
-        print(f"  ⚠️  Error syncing control file cutoff date: {e}")
-        return False
+    Keeping this function for backward compatibility but it now does nothing.
+    """
+    return False
 
 
 def load_index_file(channel_dir: Path, cutoff_date: str) -> Optional[Dict]:
@@ -1115,8 +1074,10 @@ Examples:
     # Process channels
     print("Running in batch processing mode with indexing...")
     
-    # Update cutoff dates to today's date
-    update_cutoff_dates_to_today(args.config)
+    # DISABLED: Automatic cutoff date updates
+    # This was causing issues by changing cutoff dates on every run, which could
+    # lead to unexpected behavior. Users should manually set cutoff dates in config.
+    # update_cutoff_dates_to_today(args.config)
     
     results = process_channels_batch(
         args.config, 
